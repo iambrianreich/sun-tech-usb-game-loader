@@ -441,7 +441,10 @@ function openWindow(target) {
       '--disable-sync',
       '--disable-default-apps',
       '--no-service-autorun',
-      '--disable-features=Translate,MediaRouter,OptimizationHints,CalculateNativeWinOcclusion,InterestFeedContentSuggestions'
+      '--disable-features=Translate,MediaRouter,OptimizationHints,CalculateNativeWinOcclusion,InterestFeedContentSuggestions',
+      /* Escape hatch for a machine that needs to tune the browser, such as
+         scripts/pi-game-mode.sh asking for fullscreen. Space-separated. */
+      ...(process.env.SUNTECH_CHROME_FLAGS || '').split(/\s+/).filter(Boolean)
     ], { detached: true, stdio: 'ignore' });
     child.unref();
     return 'app';
