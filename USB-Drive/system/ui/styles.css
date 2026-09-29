@@ -105,16 +105,28 @@ code{ font-family:var(--mono); font-size:.88em; color:var(--ember); }
   -webkit-mask-image:linear-gradient(180deg,transparent,#000 40%,#000 74%,transparent);
   opacity:.32;
 }
+/* The scroll is a transform on a tile layer that starts one 84px tile high,
+   not an animated background-position. Animating the background repaints this
+   whole oversized layer on the CPU every frame, which dropped every screen
+   and every game to ~3 fps on a Raspberry Pi. A transform runs on the GPU. */
 .ambient__floor-inner{
   position:absolute; inset:-140% 0 0;
   transform:rotateX(76deg);
   transform-origin:50% 100%;
+  overflow:hidden;
+}
+.ambient__floor-inner::before{
+  content:''; position:absolute; inset:-84px 0 0;
   background-image:
     repeating-linear-gradient(90deg, rgba(34,232,255,.55) 0 1px, transparent 1px 84px),
     repeating-linear-gradient(0deg,  rgba(255,106,0,.34) 0 1px, transparent 1px 84px);
+  will-change:transform;
   animation:floorRun 7s linear infinite;
 }
-@keyframes floorRun{ to{ background-position:0 84px, 0 84px; } }
+@keyframes floorRun{ to{ transform:translateY(84px); } }
+
+/* A running game covers the whole stage; nothing behind it should keep drawing. */
+html[data-view="play"] .ambient{ display:none; }
 
 .ambient__scan{
   position:absolute; inset:0;
@@ -123,7 +135,7 @@ code{ font-family:var(--mono); font-size:.88em; color:var(--ember); }
 }
 
 @media (prefers-reduced-motion:reduce){
-  .ambient__floor-inner{ animation:none; }
+  .ambient__floor-inner::before{ animation:none; }
   *{ animation-duration:.001ms !important; transition-duration:.001ms !important; }
 }
 
