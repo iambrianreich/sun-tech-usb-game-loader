@@ -271,8 +271,11 @@ function sendFile(res, abs, req, policy) {
   });
 }
 
-/* Fonts, logos and the stylesheet are fixed for the life of the drive. */
-const UI_CACHE    = 'public, max-age=86400';
+/* The shell's assets revalidate too. A max-age here is not just a small win: the
+   browser profile outlives the Grid (it sits in the temp folder), so an update
+   to the stylesheet or app.js kept being ignored for up to a day, and a fixed
+   build kept running the old, slow one. A 304 is cheap and skips the disk read. */
+const UI_CACHE    = 'no-cache';
 /* Games revalidate, so a student's edit still shows up on the next launch. */
 const GAME_CACHE  = 'no-cache';
 
