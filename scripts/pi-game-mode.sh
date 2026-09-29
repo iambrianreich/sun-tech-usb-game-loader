@@ -152,6 +152,9 @@ tune() {
     if [ "$screen_size" = "none" ]; then
         screen_size="$(current_mode | awk '{ print $2 }')"
     fi
+    # Closing the window, or choosing Quit in the Grid, ends the server, which
+    # ends START.sh, which is what triggers the restore below.
+    export SUNTECH_QUIT_WITH_WINDOW=1
     export SUNTECH_CHROME_FLAGS="${SUNTECH_CHROME_FLAGS:-} --start-fullscreen"
     if [ -n "$screen_size" ]; then
         SUNTECH_CHROME_FLAGS+=" --window-size=${screen_size/x/,}"

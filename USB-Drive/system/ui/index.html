@@ -50,6 +50,11 @@
     Add a game
   </button>
 
+  <button class="btn btn--ghost" id="btnQuit" type="button">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v6M4.6 4.4a5 5 0 1 0 6.8 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/></svg>
+    Quit <kbd>Q</kbd>
+  </button>
+
   <button class="btn btn--exit" id="btnMenu" type="button" hidden>
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
     Back to grid <kbd>Esc</kbd>
@@ -180,12 +185,28 @@
 
 </main>
 
+<!-- ====================================================================== -->
+<!-- QUIT CONFIRM                                                            -->
+<!-- ====================================================================== -->
+<div class="quit" id="quit" role="alertdialog" aria-modal="true" aria-labelledby="quitTitle" hidden>
+  <div class="quit__card">
+    <h2 class="quit__title" id="quitTitle">Leave the Game Grid?</h2>
+    <p class="quit__text" id="quitText">This closes the Grid and returns to the desktop.</p>
+    <div class="quit__actions">
+      <button class="btn btn--exit" id="quitNo" type="button">Stay</button>
+      <button class="btn btn--primary" id="quitYes" type="button">Quit</button>
+    </div>
+    <p class="quit__hint"><kbd>←</kbd><kbd>→</kbd> choose <kbd>Enter</kbd> / <kbd>A</kbd> confirm <kbd>Esc</kbd> / <kbd>B</kbd> stay</p>
+  </div>
+</div>
+
 <footer class="footbar" id="footbar">
   <span class="footbar__keys">
     <kbd>↑</kbd><kbd>↓</kbd><kbd>W</kbd><kbd>S</kbd> move
     <em>·</em> <kbd>Enter</kbd> launch
     <em>·</em> <kbd>Esc</kbd> back
     <em>·</em> <kbd>R</kbd> refresh
+    <em>·</em> <kbd>Q</kbd> quit
   </span>
   <span class="footbar__org">SUN Area Technical Institute · New Berlin, PA</span>
 </footer>

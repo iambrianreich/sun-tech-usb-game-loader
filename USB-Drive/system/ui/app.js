@@ -23,6 +23,7 @@ const el = {
   add: $('add'), addForm: $('addForm'), addError: $('addError'),
   addCancel: $('addCancel'), addSubmit: $('addSubmit'),
   fPath: $('fPath'), fTitle: $('fTitle'), fAuthor: $('fAuthor'), fDesc: $('fDesc'),
+  btnQuit: $('btnQuit'), quit: $('quit'), quitText: $('quitText'), quitYes: $('quitYes'), quitNo: $('quitNo'),
   fControls: $('fControls'), fTags: $('fTags'), fPreview: $('fPreview'),
   drop: $('drop'), dropPreview: $('dropPreview'), dropLabel: $('dropLabel')
 };
@@ -272,6 +273,40 @@ el.addForm.addEventListener('submit', async e => {
   }
 });
 
+/* ---------------------------------------------------------------- quit
+   Leaving is a deliberate two-step (ask, then confirm) because Enter also
+   launches games. The dialog opens on "Stay", so a stray Enter is harmless. */
+function openQuit() {
+  if (view !== 'menu') return;
+  setView('quit');
+  el.quit.hidden = false;
+  el.quitYes.disabled = el.quitNo.disabled = false;
+  el.quitText.textContent = 'This closes the Grid and returns to the desktop.';
+  el.quitNo.focus();
+}
+
+function closeQuit() {
+  el.quit.hidden = true;
+  setView('menu');
+  el.list.focus();
+}
+
+async function doQuit() {
+  el.quitYes.disabled = el.quitNo.disabled = true;
+  el.quitText.textContent = 'Closing the Game Grid…';
+  try { await fetch('/api/quit', { method: 'POST' }); }
+  catch { /* the server may drop the connection as it exits */ }
+  /* The window normally disappears with the server. If we are still here,
+     something is holding it open, so say so instead of hanging silently. */
+  setTimeout(() => {
+    el.quitText.textContent = 'The Grid has stopped. You can close this window.';
+  }, 4000);
+}
+
+el.btnQuit.addEventListener('click', openQuit);
+el.quitNo.addEventListener('click', closeQuit);
+el.quitYes.addEventListener('click', doQuit);
+
 /* ---------------------------------------------------------------- keyboard */
 document.addEventListener('keydown', e => {
   if (view === 'boot') { finishBoot(); return; }
@@ -283,6 +318,17 @@ document.addEventListener('keydown', e => {
 
   if (view === 'play') {
     if (e.key === 'Escape') { e.preventDefault(); toMenu(); }
+    return;
+  }
+
+  if (view === 'quit') {
+    /* Enter and Space are left alone: they press whichever button has focus. */
+    if (e.key === 'Escape' || e.key === 'n' || e.key === 'N') { e.preventDefault(); closeQuit(); }
+    else if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); doQuit(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      (document.activeElement === el.quitNo ? el.quitYes : el.quitNo).focus();
+    }
     return;
   }
 
@@ -299,6 +345,7 @@ document.addEventListener('keydown', e => {
     case 'Enter': case ' ': e.preventDefault(); launch(games[index]); break;
     case 'r': case 'R': e.preventDefault(); refresh(); break;
     case 'a': case 'A': e.preventDefault(); openAdd(); break;
+    case 'q': case 'Q': e.preventDefault(); openQuit(); break;
   }
 });
 
@@ -383,6 +430,13 @@ function padTick(now) {
       if (pressed('a') || pressed('start')) launch(games[index]);
       if (pressed('x')) openAdd();
       if (pressed('y')) refresh();
+      if (pressed('b')) openQuit();
+    } else if (view === 'quit') {
+      if (pressed('left') || pressed('right') || pressed('up') || pressed('down')) {
+        (document.activeElement === el.quitNo ? el.quitYes : el.quitNo).focus();
+      }
+      if (pressed('a')) document.activeElement?.click();
+      if (pressed('b')) closeQuit();
     }
   }
   padPrev = s;

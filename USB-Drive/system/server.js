@@ -341,8 +341,10 @@ const server = http.createServer((req, res) => {
   }
 
   if (pathname === '/api/quit') {
+    // POST only: a GET can be fired by any page open in another browser tab.
+    if (req.method !== 'POST') return send(res, 405, 'Use POST', null, { 'Allow': 'POST' });
     sendJson(res, 200, { ok: true });
-    setTimeout(() => process.exit(0), 200);
+    setTimeout(shutdown, 200);
     return;
   }
 
@@ -421,6 +423,21 @@ function profileDir() {
   }
 }
 
+/* The window this server opened, if it opened one. Kept so that quitting the
+   Grid takes the window with it instead of leaving it up, pointing at nothing. */
+let appWindow = null;
+
+function shutdown() {
+  if (appWindow && appWindow.pid) {
+    try {
+      // The window leads its own process group on POSIX; signal the whole group.
+      if (process.platform === 'win32') appWindow.kill();
+      else process.kill(-appWindow.pid, 'SIGTERM');
+    } catch { /* already gone */ }
+  }
+  process.exit(0);
+}
+
 function openWindow(target) {
   const list = CHROME_PATHS[process.platform] || [];
   const exe = list.find(p => { try { return p && fs.existsSync(p); } catch { return false; } });
@@ -450,6 +467,17 @@ function openWindow(target) {
       ...(process.env.SUNTECH_CHROME_FLAGS || '').split(/\s+/).filter(Boolean)
     ], { detached: true, stdio: 'ignore' });
     child.unref();
+    appWindow = child;
+
+    /* Kiosk setups (scripts/pi-game-mode.sh) want the Grid to end when its
+       window does, so that whatever launched it can put things back. Opt-in,
+       because everywhere else the console window is the way to quit. The
+       time check ignores a browser that hands off to an already-running copy
+       and exits at once. */
+    if (process.env.SUNTECH_QUIT_WITH_WINDOW) {
+      const openedAt = Date.now();
+      child.on('exit', () => { if (Date.now() - openedAt > 3000) shutdown(); });
+    }
     return 'app';
   }
 

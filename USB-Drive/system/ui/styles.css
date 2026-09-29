@@ -563,3 +563,32 @@ html[data-view="play"] .footbar{ display:none; }
   .ribbon__hint{ display:none; }
   .field-row{ grid-template-columns:1fr; }
 }
+
+/* ===========================================================================
+   QUIT CONFIRM
+   =========================================================================== */
+.quit{
+  position:fixed; inset:0; z-index:85;
+  display:grid; place-items:center; padding:16px;
+  background:rgba(4,6,13,.82);
+}
+.quit__card{
+  width:min(440px,100%); padding:26px 28px 20px;
+  background:var(--panel); border:1px solid var(--line-hot);
+  box-shadow:0 0 50px -18px rgba(255,106,0,.55), 0 24px 60px -20px rgba(0,0,0,.9);
+  display:flex; flex-direction:column; gap:14px;
+}
+.quit__title{
+  margin:0; font-family:var(--display); font-weight:700; font-size:1.35rem;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--ink);
+}
+.quit__text{ margin:0; font-size:.86rem; color:var(--ink-2); }
+.quit__actions{ display:flex; gap:10px; margin-top:6px; }
+.quit__actions .btn{ flex:1 1 0; justify-content:center; padding:11px 16px; }
+/* The buttons are clip-path'd into a shear, which cuts off any outline, so the
+   focus ring is drawn inside. It has to be visible for gamepad players. */
+.quit__actions .btn:focus{ outline:none; border-color:var(--cyan); box-shadow:inset 0 0 0 2px var(--cyan), inset 0 0 26px rgba(34,232,255,.35); }
+.quit__hint{ margin:2px 0 0; font-size:.7rem; color:var(--ink-3); text-align:center; }
+
+/* Quit belongs to the menu only; the play and add screens have Back. */
+html:not([data-view="menu"]) #btnQuit{ display:none; }
