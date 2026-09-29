@@ -302,6 +302,93 @@ document.addEventListener('keydown', e => {
   }
 });
 
+/* ---------------------------------------------------------------- gamepad
+   Games only listen for the keyboard, so the pad is translated here: in the
+   menus it drives the same actions as the keys above, and while playing it
+   sends synthetic key events into the (same-origin) game frame. Every game,
+   including ones added later, gets pad support without being touched.
+
+   Uses the browser's "standard" mapping: 0 A, 1 B, 2 X, 3 Y, 8 Back, 9 Start,
+   12-15 D-pad. Browsers hide the pad until its first button press. */
+const PAD_STICK_DEADZONE = 0.5;
+const PAD_REPEAT_FIRST_MS = 350;
+const PAD_REPEAT_MS = 120;
+const PAD_GAME_KEYS = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
+
+let padPrev = {};
+let padHeld = new Set();       // keys currently held down inside the game frame
+let padRepeatAt = {};
+
+function readPads() {
+  const s = { up: false, down: false, left: false, right: false, a: false, b: false, x: false, y: false, back: false, start: false };
+  for (const p of (navigator.getGamepads ? navigator.getGamepads() : [])) {
+    if (!p || !p.connected) continue;
+    const b = i => !!(p.buttons[i] && p.buttons[i].pressed);
+    const ax = p.axes[0] || 0, ay = p.axes[1] || 0;
+    s.up    ||= b(12) || ay < -PAD_STICK_DEADZONE;
+    s.down  ||= b(13) || ay >  PAD_STICK_DEADZONE;
+    s.left  ||= b(14) || ax < -PAD_STICK_DEADZONE;
+    s.right ||= b(15) || ax >  PAD_STICK_DEADZONE;
+    s.a ||= b(0); s.b ||= b(1); s.x ||= b(2); s.y ||= b(3);
+    s.back ||= b(8); s.start ||= b(9);
+  }
+  return s;
+}
+
+function padKey(type, key) {
+  try {
+    const w = el.frame.contentWindow;
+    w.document.dispatchEvent(new w.KeyboardEvent(type, { key, code: key === ' ' ? 'Space' : key, bubbles: true, cancelable: true }));
+  } catch { /* frame navigated off-origin: nothing to drive */ }
+}
+
+function padSetHeld(key, down) {
+  if (down === padHeld.has(key)) return;
+  down ? padHeld.add(key) : padHeld.delete(key);
+  padKey(down ? 'keydown' : 'keyup', key);
+}
+
+function padReleaseAll() {
+  for (const k of padHeld) padKey('keyup', k);
+  padHeld.clear();
+}
+
+/* True on the press, then again on a steady beat while held. */
+function padPulse(name, now, s) {
+  if (!s[name]) { delete padRepeatAt[name]; return false; }
+  if (!padPrev[name]) { padRepeatAt[name] = now + PAD_REPEAT_FIRST_MS; return true; }
+  if (now >= padRepeatAt[name]) { padRepeatAt[name] = now + PAD_REPEAT_MS; return true; }
+  return false;
+}
+
+function padTick(now) {
+  requestAnimationFrame(padTick);
+  const s = readPads();
+  const pressed = n => s[n] && !padPrev[n];
+
+  if (view === 'play') {
+    for (const d of Object.keys(PAD_GAME_KEYS)) padSetHeld(PAD_GAME_KEYS[d], s[d]);
+    padSetHeld(' ', s.a);
+    padSetHeld('Enter', s.x);
+    if (pressed('start') || pressed('back')) { padReleaseAll(); toMenu(); }
+  } else {
+    if (padHeld.size) padReleaseAll();
+    if (view === 'boot') {
+      if (Object.values(s).some(Boolean) && !Object.values(padPrev).some(Boolean)) finishBoot();
+    } else if (view === 'add') {
+      if (pressed('b') || pressed('back') || pressed('start')) closeAdd();
+    } else if (view === 'menu') {
+      if (padPulse('down', now, s)) select(index + 1);
+      if (padPulse('up', now, s)) select(index - 1);
+      if (pressed('a') || pressed('start')) launch(games[index]);
+      if (pressed('x')) openAdd();
+      if (pressed('y')) refresh();
+    }
+  }
+  padPrev = s;
+}
+requestAnimationFrame(padTick);
+
 async function refresh() {
   el.gameCount.textContent = 'refreshing…';
   await loadGames();
